@@ -28,7 +28,7 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.author.outputs.skip != 'true'
 
       - name: Setup Node.js
@@ -107,7 +107,7 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.author.outputs.skip != 'true'
 
       - name: Setup Node.js
