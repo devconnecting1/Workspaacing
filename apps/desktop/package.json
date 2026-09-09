@@ -10,7 +10,6 @@
     "email": "dev@workspaacing.app"
   },
   "scripts": {
-    "dev": "npm run electron:build:ts && node scripts/dev.mjs",
     "build": "npm run electron:build:ts",
     "electron:package": "npm run electron:build:ts && node scripts/copy-web-deps.mjs && electron-builder",
     "electron:package:win": "npm run electron:build:ts && electron-builder --win",
