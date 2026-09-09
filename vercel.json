@@ -1,0 +1,5 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "turbo run build --filter=@workspaacing/web",
+  "installCommand": "npm install --ignore-scripts"
+}

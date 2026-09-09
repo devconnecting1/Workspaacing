@@ -1,0 +1,288 @@
+"use client";
+
+import {
+  Archive,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  EllipsisVertical,
+  Forward,
+  MailOpen,
+  Paperclip,
+  Pin,
+  Reply,
+  ReplyAll,
+  Send,
+  Smile,
+  Tag,
+  Trash2,
+  X,
+} from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+
+import { SimpleIcon } from "@/components/simple-icon";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
+import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+
+import type { Mail } from "./data";
+import { useMail } from "./use-mail";
+
+interface MailDisplayProps {
+  mail: Mail | null;
+  onClose?: () => void;
+}
+
+export function MailView({ mail, onClose }: MailDisplayProps) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const [, setMail] = useMail();
+
+  const dateTimeFormatter = new Intl.DateTimeFormat(locale === "pt-BR" ? "pt-BR" : "en-US", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
+  });
+
+  function handleClose() {
+    setMail({ selected: null });
+    onClose?.();
+  }
+
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-3 px-2 py-3">
+      <div className="flex items-center">
+        <div className="flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon-sm" aria-label={t("mail.closeMessage")} onClick={handleClose}>
+                <X />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t("mail.closeMessage")}</TooltipContent>
+          </Tooltip>
+          <Separator className="h-4 data-vertical:self-center" orientation="vertical" />
+          <div className="flex items-center gap-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon-sm" aria-label={t("mail.previousMessage")}>
+                  <ChevronLeft />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t("mail.previousMessage")}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon-sm" aria-label={t("mail.nextMessage")}>
+                  <ChevronRight />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t("mail.nextMessage")}</TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon-sm" aria-label={t("mail.pinThread")}>
+                <Pin />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t("mail.pinThread")}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon-sm" aria-label={t("mail.archive")}>
+                <Archive />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t("mail.archive")}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon-sm" aria-label={t("mail.reply")}>
+                <Reply />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t("mail.reply")}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" aria-label={t("mail.moreActions")}>
+                    <EllipsisVertical />
+                  </Button>
+                </TooltipTrigger>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuGroup>
+                  <DropdownMenuItem>
+                    <ReplyAll />
+                    {t("mail.replyAll")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Forward />
+                    {t("mail.forward")}
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem>
+                    <MailOpen />
+                    {t("mail.markAsUnread")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Tag />
+                    {t("mail.addLabel")}
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <TooltipContent>{t("mail.moreActions")}</TooltipContent>
+          </Tooltip>
+          <Separator className="h-4 data-vertical:self-center" orientation="vertical" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon-sm" aria-label={t("mail.moveToTrash")}>
+                <Trash2 className="text-destructive" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t("mail.moveToTrash")}</TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="flex min-h-0 flex-1 flex-col">
+        {mail ? (
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            <div className="space-y-1.5">
+              <div className="font-medium leading-none">{t(mail.subjectKey)}</div>
+
+              <div className="text-muted-foreground text-xs leading-none">
+                {dateTimeFormatter.format(new Date(mail.receivedAt))}
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="flex gap-2">
+              <Avatar className="size-9 after:rounded-sm">
+                <AvatarFallback className="rounded-sm bg-background">{mail.from.name[0]}</AvatarFallback>
+              </Avatar>
+
+              <div className="flex h-full flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <div className="text-xs">{mail.from.name}</div>
+                  <Separator className="h-3 data-vertical:self-center" orientation="vertical" />
+                  <div className="text-muted-foreground text-xs">{mail.from.email}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-muted-foreground text-xs">
+                    {t("mail.to")}
+                    <span className="text-foreground">{mail.to.map((recipient) => recipient.name).join(", ")}</span>
+                  </div>
+
+                  {mail.cc?.length ? (
+                    <div className="text-muted-foreground text-xs">
+                      {t("mail.cc")}
+                      <span className="text-foreground">{mail.cc.map((recipient) => recipient.name).join(", ")}</span>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {mail.attachments?.length ? (
+              <>
+                <Collapsible defaultOpen>
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "group p-0 font-normal text-muted-foreground",
+                        "hover:bg-transparent hover:text-muted-foreground dark:hover:bg-transparent",
+                        "data-[state=open]:bg-transparent data-[state=open]:text-muted-foreground",
+                      )}
+                    >
+                      {t("mail.attachmentsCount", { count: mail.attachments.length })}
+                      <ChevronDown className="group-data-[state=open]:rotate-180" />
+                    </Button>
+                  </CollapsibleTrigger>
+
+                  <CollapsibleContent>
+                    <div className="flex flex-wrap gap-2">
+                      {mail.attachments.map((attachment) => (
+                        <Button size="xs" variant="secondary" key={attachment.id}>
+                          <SimpleIcon icon={attachment.icon} className="size-3 fill-current" />
+                          <span className="font-normal">{t(attachment.nameKey)}</span>
+                          <span className="font-normal text-muted-foreground">{attachment.size}</span>
+                        </Button>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+
+                <Separator className="my-2" />
+              </>
+            ) : null}
+
+            <div className="scrollbar-none min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap text-sm">
+              {t(mail.bodyKey)}
+            </div>
+
+            <div className="mt-auto flex flex-col gap-3">
+              <Separator />
+              <InputGroup>
+                <InputGroupAddon align="inline-start">
+                  <Reply />
+                </InputGroupAddon>
+                <InputGroupInput
+                  className="text-xs"
+                  placeholder={t("mail.replyPlaceholder", { name: mail.from.name })}
+                />
+                <InputGroupAddon className="gap-1" align="inline-end">
+                  <InputGroupButton variant="ghost">
+                    <Smile />
+                  </InputGroupButton>
+                  <InputGroupButton variant="ghost">
+                    <Paperclip />
+                  </InputGroupButton>
+                  <InputGroupButton variant="ghost">
+                    <Send />
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
+            </div>
+          </div>
+        ) : (
+          <div className="grid h-full place-items-center text-muted-foreground text-sm">
+            {t("mail.noEmailSelected")}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

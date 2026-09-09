@@ -1,0 +1,139 @@
+name: Duplicate Issues
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  check-duplicates:
+    if: github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Check exempt issue author
+        id: author
+        run: |
+          LOGIN="${{ github.event.issue.user.login }}"
+          ASSOCIATION="${{ github.event.issue.author_association }}"
+
+          if [ "$LOGIN" = "opencode-agent[bot]" ] ||
+             [ "$ASSOCIATION" = "OWNER" ] ||
+             [ "$ASSOCIATION" = "MEMBER" ] ||
+             grep -qxiF "$LOGIN" .github/TEAM_MEMBERS; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping issue automation for exempt author: $LOGIN"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v7
+        if: steps.author.outputs.skip != 'true'
+
+      - name: Setup Node.js
+        if: steps.author.outputs.skip != 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install OpenCode
+        if: steps.author.outputs.skip != 'true'
+        run: curl -fsSL https://opencode.ai/install | bash
+
+      - name: Check duplicates and compliance
+        if: steps.author.outputs.skip != 'true'
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          opencode run -m opencode/claude-sonnet-4-6 "A new issue has been created.
+
+          Issue number: $ISSUE_NUMBER
+          Issue author association: ${{ github.event.issue.author_association }}
+
+          Lookup this issue with gh issue view $ISSUE_NUMBER.
+
+          TASK 1: CONTRIBUTING GUIDELINES COMPLIANCE CHECK
+
+          Check whether the issue follows our contributing guidelines and issue templates.
+
+          If the issue author association is OWNER or MEMBER, skip this compliance check.
+
+          Check:
+          - The issue has real content, not just template placeholder text
+          - Bug reports should include some context about how to reproduce
+          - Feature requests should explain the problem or need
+          - Do NOT be nitpicky about optional fields
+
+          TASK 2: DUPLICATE CHECK
+
+          Search through existing issues (excluding #$ISSUE_NUMBER) to find potential duplicates.
+          Consider:
+          1. Similar titles or descriptions
+          2. Same error messages or symptoms
+          3. Related functionality or components
+
+          POSTING YOUR COMMENT:
+
+          If the issue is NOT compliant and the author association is not OWNER or MEMBER, start the comment with:
+          <!-- issue-compliance -->
+          Then explain what needs to be fixed and that they have 2 hours to edit the issue before it is automatically closed. Also add the label needs:compliance: gh issue edit $ISSUE_NUMBER --add-label needs:compliance
+
+          If duplicates were found, include a section about potential duplicates with links.
+
+          If everything is fine, do NOT comment at all."
+
+  recheck-compliance:
+    if: github.event.action == 'edited' && contains(github.event.issue.labels.*.name, 'needs:compliance')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Check exempt issue author
+        id: author
+        run: |
+          LOGIN="${{ github.event.issue.user.login }}"
+          ASSOCIATION="${{ github.event.issue.author_association }}"
+
+          if [ "$LOGIN" = "opencode-agent[bot]" ] ||
+             [ "$ASSOCIATION" = "OWNER" ] ||
+             [ "$ASSOCIATION" = "MEMBER" ] ||
+             grep -qxiF "$LOGIN" .github/TEAM_MEMBERS; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v7
+        if: steps.author.outputs.skip != 'true'
+
+      - name: Setup Node.js
+        if: steps.author.outputs.skip != 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install OpenCode
+        if: steps.author.outputs.skip != 'true'
+        run: curl -fsSL https://opencode.ai/install | bash
+
+      - name: Recheck compliance
+        if: steps.author.outputs.skip != 'true'
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          opencode run -m opencode/claude-sonnet-4-6 "Issue #$ISSUE_NUMBER was previously flagged as non-compliant and has been edited.
+
+          Re-check whether the issue now follows our contributing guidelines.
+
+          If the issue is NOW compliant:
+          1. Remove the needs:compliance label: gh issue edit $ISSUE_NUMBER --remove-label needs:compliance
+          2. Delete the compliance comment (the one containing <!-- issue-compliance -->)
+          3. Post a short comment thanking them for updating.
+
+          If the issue is STILL not compliant, post a comment explaining what still needs to be fixed."

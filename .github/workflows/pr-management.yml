@@ -1,0 +1,68 @@
+name: PR Management
+
+on:
+  pull_request_target:
+    types: [opened]
+
+jobs:
+  check-duplicates:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Check team membership
+        id: team-check
+        run: |
+          LOGIN="${{ github.event.pull_request.user.login }}"
+          if [ "$LOGIN" = "opencode-agent[bot]" ] || grep -qxF "$LOGIN" .github/TEAM_MEMBERS; then
+            echo "is_team=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping: $LOGIN is a team member or bot"
+          else
+            echo "is_team=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v7
+        if: steps.team-check.outputs.is_team != 'true'
+
+      - name: Check for duplicate PRs
+        if: steps.team-check.outputs.is_team != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          CURRENT_TITLE=$(gh pr view "$PR_NUMBER" --json title --jq .title)
+          CURRENT_BODY=$(gh pr view "$PR_NUMBER" --json body --jq .body)
+
+          # Search for open PRs with similar titles
+          DUPLICATES=$(gh pr list --state open --json number,title --jq \
+            ".[] | select(.number != $PR_NUMBER) | select(.title | test(\"$(echo "$CURRENT_TITLE" | sed 's/[[\.*^$()+?{|]/\\&/g')\"; \"i\")) | \"#\\(.number) \\(.title)\"" 2>/dev/null || true)
+
+          if [ -n "$DUPLICATES" ]; then
+            COMMENT="_The following comment was made by an automated check, it may be inaccurate:_
+
+          This PR might be a duplicate of existing PRs. Please check:
+          $DUPLICATES"
+
+            gh pr comment "$PR_NUMBER" --body "$COMMENT"
+          fi
+
+  add-contributor-label:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Add Contributor Label
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (pr.author_association === 'CONTRIBUTOR') {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['contributor']
+              });
+            }

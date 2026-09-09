@@ -1,0 +1,54 @@
+{
+  "name": "workspaacing",
+  "version": "2.2.0",
+  "private": true,
+  "packageManager": "npm@12.0.2",
+  "author": {
+    "name": "Workspaacing",
+    "email": "dev@workspaacing.app"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build --filter=@workspaacing/web",
+    "lint": "turbo run lint",
+    "check": "turbo run check",
+    "typecheck": "turbo run typecheck",
+    "format": "biome format --write",
+    "check:fix": "biome check --write",
+    "prepare": "husky",
+    "ci:local": "node scripts/ci-local.mjs",
+    "ci:local:build": "node scripts/ci-local.mjs --build",
+    "lint:md": "markdownlint-cli2 \"*.md\"",
+    "lint:yaml": "yamllint .github/workflows/*.yml .github/dependabot.yml",
+    "electron:dev": "turbo run dev --filter=@workspaacing/desktop",
+    "electron:package": "turbo run electron:package --filter=@workspaacing/desktop",
+    "generate:presets": "npm run generate:presets --workspace=apps/web"
+  },
+  "lint-staged": {
+    "*.{js,ts,jsx,tsx}": [
+      "biome check --write --no-errors-on-unmatched"
+    ],
+    "*.md": [
+      "markdownlint-cli2 --fix"
+    ],
+    "*.yml": [
+      "bash -c 'pip install -q yamllint && yamllint -c .yamllint.yml'"
+    ]
+  },
+  "allowScripts": {
+    "@parcel/watcher": true,
+    "@swc/core": true
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.12",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.0",
+    "markdownlint-cli2": "^0.23.2",
+    "turbo": "^2.10.12"
+  },
+  "dependencies": {}
+}

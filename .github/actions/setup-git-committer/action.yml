@@ -1,0 +1,34 @@
+name: "Setup Git Committer"
+description: "Configure git identity for automated commits"
+
+inputs:
+  github-app-id:
+    description: "GitHub App ID"
+    required: false
+  github-app-secret:
+    description: "GitHub App private key"
+    required: false
+
+outputs:
+  token:
+    description: "GitHub token for automated commits"
+    value: ${{ steps.token.outputs.token }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Configure git identity
+      shell: bash
+      run: |
+        git config --global user.email "action@github.com"
+        git config --global user.name "GitHub Action"
+
+    - name: Generate token
+      id: token
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.github-app-id }}" ] && [ -n "${{ inputs.github-app-secret }}" ]; then
+          echo "token=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
+        else
+          echo "token=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
+        fi

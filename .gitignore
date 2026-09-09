@@ -1,0 +1,10 @@
+node_modules/
+.next/
+out/
+dist/
+dist-electron/
+.turbo/
+.turbo/cache/
+*.tsbuildinfo
+apps/web/.env.local
+tsconfig.tsbuildinfo

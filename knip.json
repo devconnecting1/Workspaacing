@@ -1,0 +1,52 @@
+{
+  "$schema": "https://knip.dev/schema.json",
+  "workspaces": {
+    "apps/web": {
+      "entry": ["src/app/**/page.tsx", "src/app/**/layout.tsx"],
+      "ignore": [
+        "src/components/animate-ui/**",
+        "src/components/ui/**",
+        "src/hooks/use-controlled-state.tsx",
+        "src/components/date-range-picker.tsx",
+        "src/data/countries.ts",
+        "src/data/timezones.ts",
+        "src/hooks/use-is-in-view.tsx",
+        "src/lib/get-strict-context.tsx",
+        "src/styles/flag-icons/flags.css"
+      ],
+      "ignoreDependencies": [
+        "@base-ui/react",
+        "@floating-ui/react",
+        "@workspaacing/ui",
+        "@workspaacing/theme",
+        "@biomejs/biome",
+        "@opencode-ai/models",
+        "d3-geo",
+        "@types/d3-geo",
+        "topojson-client",
+        "@types/topojson-client",
+        "embla-carousel-react",
+        "input-otp",
+        "motion",
+        "next-themes",
+        "react-day-picker",
+        "react-markdown",
+        "recharts",
+        "shiki"
+      ]
+    },
+    "apps/desktop": {
+      "entry": ["electron/main.ts", "electron/preload.ts"]
+    },
+    "packages/ui": {
+      "ignoreDependencies": ["@floating-ui/react", "@hookform/resolvers", "@tanstack/react-table", "motion", "react-hook-form", "shiki"]
+    },
+    "packages/theme": {
+      "ignore": ["src/generate-theme-presets.ts"]
+    }
+  },
+  "ignoreBinaries": ["yamllint"],
+  "ignoreDependencies": ["lint-staged"],
+  "ignoreExportsUsedInFile": true,
+  "exclude": ["enumMembers", "namespaceMembers", "types"]
+}

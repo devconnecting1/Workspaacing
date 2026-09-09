@@ -1,0 +1,82 @@
+name: Close Stale Issues
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Log matching issues without closing them"
+        type: boolean
+        default: true
+      max-close:
+        description: "Maximum issues to close"
+        type: string
+        required: false
+        default: "50"
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Close stale issues
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          max_close="${{ inputs['max-close'] }}"
+          if [ -z "$max_close" ]; then
+            max_close="50"
+          fi
+
+          closed=0
+          page=1
+
+          while [ "$closed" -lt "$max_close" ]; do
+            issues=$(gh issue list \
+              --state open \
+              --label "" \
+              --json number,createdAt,reactionGroups \
+              --limit 100 \
+              --jq ".[] | select(
+                (.createdAt | fromdateiso8601) < (now - 2592000) and
+                ([.reactionGroups[].users.total] | add // 0) == 0
+              ) | .number" 2>/dev/null || true)
+
+            if [ -z "$issues" ]; then
+              echo "No more stale issues found"
+              break
+            fi
+
+            for issue in $issues; do
+              # Check for exempt labels
+              labels=$(gh issue view "$issue" --json labels --jq '.labels[].name' 2>/dev/null || true)
+              if echo "$labels" | grep -qiE "pinned|security|bug"; then
+                echo "Skipping #$issue (exempt label)"
+                continue
+              fi
+
+              if [ "${{ inputs['dry-run'] }}" != "false" ] && [ "${{ github.event_name }}" != "schedule" ]; then
+                echo "Would close #$issue"
+              else
+                gh issue close "$issue" --comment "Closing due to inactivity. Feel free to reopen if this is still relevant." 2>/dev/null
+                echo "Closed #$issue"
+                closed=$((closed + 1))
+              fi
+
+              if [ "$closed" -ge "$max_close" ]; then
+                break
+              fi
+
+              sleep 1
+            done
+
+            page=$((page + 1))
+          done
+
+          echo "Total closed: $closed"

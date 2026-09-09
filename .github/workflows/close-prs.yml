@@ -1,0 +1,76 @@
+name: Close Stale PRs
+
+on:
+  schedule:
+    - cron: "0 22 * * *"
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Log matching PRs without closing them"
+        type: boolean
+        default: true
+      max-close:
+        description: "Maximum PRs to close"
+        type: string
+        required: false
+        default: "50"
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Close stale PRs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          max_close="${{ inputs['max-close'] }}"
+          if [ -z "$max_close" ]; then
+            max_close="50"
+          fi
+
+          closed=0
+
+          prs=$(gh pr list \
+            --state open \
+            --json number,createdAt,reviews \
+            --limit 100 \
+            --jq ".[] | select(
+              (.createdAt | fromdateiso8601) < (now - 2592000) and
+              (.reviews | length) == 0
+            ) | .number" 2>/dev/null || true)
+
+          if [ -z "$prs" ]; then
+            echo "No stale PRs found"
+            exit 0
+          fi
+
+          for pr in $prs; do
+            if [ "$closed" -ge "$max_close" ]; then
+              break
+            fi
+
+            # Check for exempt labels
+            labels=$(gh pr view "$pr" --json labels --jq '.labels[].name' 2>/dev/null || true)
+            if echo "$labels" | grep -qiE "pinned|work-in-progress"; then
+              echo "Skipping #$pr (exempt label)"
+              continue
+            fi
+
+            if [ "${{ inputs['dry-run'] }}" != "false" ] && [ "${{ github.event_name }}" != "schedule" ]; then
+              echo "Would close #$pr"
+            else
+              gh pr close "$pr" --comment "Closing due to inactivity. Feel free to reopen if this is still relevant." 2>/dev/null
+              echo "Closed #$pr"
+              closed=$((closed + 1))
+            fi
+
+            sleep 1
+          done
+
+          echo "Total closed: $closed"

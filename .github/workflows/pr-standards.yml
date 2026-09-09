@@ -1,0 +1,297 @@
+name: PR Standards
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check-standards:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR standards
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const login = pr.user.login;
+
+            // Skip team members and bots
+            if (login === 'opencode-agent[bot]') return;
+            const { data: file } = await github.rest.repos.getContent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              path: '.github/TEAM_MEMBERS',
+              ref: 'master'
+            });
+            const members = Buffer.from(file.content, 'base64').toString().split('\n').map(l => l.trim()).filter(Boolean);
+            if (members.includes(login)) {
+              console.log(`Skipping: ${login} is a team member`);
+              return;
+            }
+
+            const title = pr.title;
+
+            async function addLabel(label) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: [label]
+              });
+            }
+
+            async function removeLabel(label) {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  name: label
+                });
+              } catch (e) {}
+            }
+
+            async function comment(marker, body) {
+              const markerText = `<!-- pr-standards:${marker} -->`;
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number
+              });
+
+              const existing = comments.find(c => c.body.includes(markerText));
+              if (existing) return;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: markerText + '\n' + body
+              });
+            }
+
+            // Check title format
+            const titlePattern = /^(feat|fix|docs|chore|refactor|test)\s*(\([a-zA-Z0-9-]+\))?\s*:/;
+            const hasValidTitle = titlePattern.test(title);
+
+            if (!hasValidTitle) {
+              await addLabel('needs:title');
+              await comment('title', `Hey! Your PR title \`${title}\` doesn't follow conventional commit format.
+
+            Please update it to start with one of:
+            - \`feat:\` or \`feat(scope):\` new feature
+            - \`fix:\` or \`fix(scope):\` bug fix
+            - \`docs:\` or \`docs(scope):\` documentation changes
+            - \`chore:\` or \`chore(scope):\` maintenance tasks
+            - \`refactor:\` or \`refactor(scope):\` code refactoring
+            - \`test:\` or \`test(scope):\` adding or updating tests
+
+            See [CONTRIBUTING.md](../blob/master/CONTRIBUTING.md) for details.`);
+              return;
+            }
+
+            await removeLabel('needs:title');
+
+            // Check for linked issue (skip for docs/refactor/feat PRs)
+            const skipIssueCheck = /^(docs|refactor|feat)\s*(\([a-zA-Z0-9-]+\))?\s*:/.test(title);
+            if (skipIssueCheck) {
+              await removeLabel('needs:issue');
+              console.log('Skipping issue check for docs/refactor/feat PR');
+              return;
+            }
+            const query = `
+              query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $number) {
+                    closingIssuesReferences(first: 1) {
+                      totalCount
+                    }
+                  }
+                }
+              }
+            `;
+
+            const result = await github.graphql(query, {
+              owner: context.repo.owner,
+              name: context.repo.repo,
+              number: pr.number
+            });
+
+            const linkedIssues = result.repository.pullRequest.closingIssuesReferences.totalCount;
+
+            if (linkedIssues === 0) {
+              await addLabel('needs:issue');
+              await comment('issue', `Thanks for your contribution!
+
+            This PR doesn't have a linked issue. All PRs must reference an existing issue.
+
+            Please:
+            1. Open an issue describing the bug/feature (if one doesn't exist)
+            2. Add \`Fixes #<number>\` or \`Closes #<number>\` to this PR description
+
+            See [CONTRIBUTING.md](../blob/master/CONTRIBUTING.md) for details.`);
+              return;
+            }
+
+            await removeLabel('needs:issue');
+            console.log('PR meets all standards');
+
+  check-compliance:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Check PR template compliance
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const login = pr.user.login;
+
+            // Skip team members and bots
+            if (login === 'opencode-agent[bot]') return;
+            const { data: file } = await github.rest.repos.getContent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              path: '.github/TEAM_MEMBERS',
+              ref: 'master'
+            });
+            const members = Buffer.from(file.content, 'base64').toString().split('\n').map(l => l.trim()).filter(Boolean);
+            if (members.includes(login)) {
+              console.log(`Skipping: ${login} is a team member`);
+              return;
+            }
+
+            const body = pr.body || '';
+            const title = pr.title;
+
+            const issues = [];
+
+            // Check: "What does this PR do?" has real content
+            const hasWhatSection = /### What does this PR do\?/.test(body);
+            if (hasWhatSection) {
+              const whatMatch = body.match(/### What does this PR do\?\s*\n([\s\S]*?)(?=###|$)/);
+              const whatContent = whatMatch ? whatMatch[1].trim() : '';
+              if (!whatContent || whatContent.length < 10) {
+                issues.push('"What does this PR do?" section is empty or too short. Please describe your changes.');
+              }
+            }
+
+            // Check: at least one "Type of change" checkbox is checked
+            const hasTypeSection = /### Type of change/.test(body);
+            if (hasTypeSection) {
+              const typeMatch = body.match(/### Type of change\s*\n([\s\S]*?)(?=###|$)/);
+              const typeContent = typeMatch ? typeMatch[1] : '';
+              const hasCheckedBox = /- \[x\]/i.test(typeContent);
+              if (!hasCheckedBox) {
+                issues.push('No "Type of change" checkbox is checked. Please select at least one.');
+              }
+            }
+
+            // Check: "How did you verify" has content
+            const hasVerifySection = /### How did you verify your code works\?/.test(body);
+            if (hasVerifySection) {
+              const verifyMatch = body.match(/### How did you verify your code works\?\s*\n([\s\S]*?)(?=###|$)/);
+              const verifyContent = verifyMatch ? verifyMatch[1].trim() : '';
+              if (!verifyContent) {
+                issues.push('"How did you verify your code works?" section is empty. Please explain how you tested.');
+              }
+            }
+
+            // Helper functions
+            async function addLabel(label) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: [label]
+              });
+            }
+
+            async function removeLabel(label) {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  name: label
+                });
+              } catch (e) {}
+            }
+
+            const hasComplianceLabel = pr.labels.some(l => l.name === 'needs:compliance');
+
+            if (issues.length > 0) {
+              if (!hasComplianceLabel) {
+                await addLabel('needs:compliance');
+              }
+
+              const marker = '<!-- issue-compliance -->';
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number
+              });
+              const existing = comments.find(c => c.body.includes(marker));
+
+              const bodyText = `${marker}
+            This PR doesn't fully meet our [contributing guidelines](../blob/master/CONTRIBUTING.md).
+
+            **What needs to be fixed:**
+            ${issues.map(i => `- ${i}`).join('\n')}
+
+            Please edit this PR description to address the above within **2 hours**, or it will be automatically closed.
+
+            If you believe this was flagged incorrectly, please let a maintainer know.`;
+
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                  body: bodyText
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: bodyText
+                });
+              }
+
+              console.log(`PR #${pr.number} is non-compliant: ${issues.join(', ')}`);
+            } else if (hasComplianceLabel) {
+              await removeLabel('needs:compliance');
+
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number
+              });
+              const marker = '<!-- issue-compliance -->';
+              const existing = comments.find(c => c.body.includes(marker));
+              if (existing) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id
+                });
+              }
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: 'Thanks for updating your PR! It now meets our contributing guidelines. :+1:'
+              });
+
+              console.log(`PR #${pr.number} is now compliant, label removed`);
+            } else {
+              console.log(`PR #${pr.number} is compliant`);
+            }

@@ -1,0 +1,133 @@
+export type AccessReview = {
+  title: string;
+  scope: string;
+  reviewer: string;
+  roles: string[];
+  status: "Pending" | "In progress" | "Completed" | "Overdue" | "Cancelled";
+  dueDate: string;
+  completedDate: string | null;
+  result: "Approved" | "Changes required" | null;
+};
+
+export const accessReviews: AccessReview[] = [
+  {
+    title: "Q2 Owner access review",
+    scope: "Quarterly review",
+    reviewer: "Jane Doe",
+    roles: ["Owner"],
+    status: "Completed",
+    dueDate: "Apr 30, 2025",
+    completedDate: "Apr 28, 2025",
+    result: "Approved",
+  },
+  {
+    title: "Admin role access audit",
+    scope: "Quarterly review",
+    reviewer: "Jane Doe",
+    roles: ["Admin"],
+    status: "Completed",
+    dueDate: "Apr 30, 2025",
+    completedDate: "Apr 29, 2025",
+    result: "Approved",
+  },
+  {
+    title: "Manager permissions validation",
+    scope: "Quarterly review",
+    reviewer: "Alex Kim",
+    roles: ["Manager"],
+    status: "In progress",
+    dueDate: "May 15, 2025",
+    completedDate: null,
+    result: null,
+  },
+  {
+    title: "Service account API access",
+    scope: "Annual review",
+    reviewer: "Chris Lee",
+    roles: ["Service"],
+    status: "Overdue",
+    dueDate: "May 1, 2025",
+    completedDate: null,
+    result: null,
+  },
+  {
+    title: "Billing permissions review",
+    scope: "Semi-annual review",
+    reviewer: "Jane Doe",
+    roles: ["Billing", "Finance Viewer"],
+    status: "Pending",
+    dueDate: "Jun 1, 2025",
+    completedDate: null,
+    result: null,
+  },
+  {
+    title: "Developer repo access audit",
+    scope: "Annual review",
+    reviewer: "Chris Lee",
+    roles: ["Developer"],
+    status: "In progress",
+    dueDate: "May 20, 2025",
+    completedDate: null,
+    result: null,
+  },
+  {
+    title: "Guest read-only access review",
+    scope: "Quarterly review",
+    reviewer: "Jane Doe",
+    roles: ["Guest"],
+    status: "Completed",
+    dueDate: "Apr 15, 2025",
+    completedDate: "Apr 14, 2025",
+    result: "Changes required",
+  },
+  {
+    title: "Marketing campaign permissions",
+    scope: "Semi-annual review",
+    reviewer: "Alex Kim",
+    roles: ["Marketing"],
+    status: "Pending",
+    dueDate: "Jun 15, 2025",
+    completedDate: null,
+    result: null,
+  },
+  {
+    title: "Support ticket access review",
+    scope: "Quarterly review",
+    reviewer: "Jane Doe",
+    roles: ["Support"],
+    status: "Cancelled",
+    dueDate: "Apr 20, 2025",
+    completedDate: null,
+    result: null,
+  },
+  {
+    title: "Analyst dashboard permissions",
+    scope: "Annual review",
+    reviewer: "Alex Kim",
+    roles: ["Analyst"],
+    status: "Pending",
+    dueDate: "Jul 1, 2025",
+    completedDate: null,
+    result: null,
+  },
+  {
+    title: "Project Lead access scope",
+    scope: "Quarterly review",
+    reviewer: "Chris Lee",
+    roles: ["Project Lead"],
+    status: "Overdue",
+    dueDate: "May 5, 2025",
+    completedDate: null,
+    result: null,
+  },
+  {
+    title: "Integrations and webhook access",
+    scope: "Annual review",
+    reviewer: "Chris Lee",
+    roles: ["Service", "Developer"],
+    status: "Pending",
+    dueDate: "Jul 15, 2025",
+    completedDate: null,
+    result: null,
+  },
+];

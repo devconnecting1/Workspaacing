@@ -1,0 +1,61 @@
+{
+  "name": "@workspaacing/desktop",
+  "version": "2.2.0",
+  "private": true,
+  "description": "Workspaacing - AI agent IDE",
+  "main": "electron/dist/main.js",
+  "homepage": "https://github.com/devconnecting1/Workspaacing",
+  "author": {
+    "name": "Workspaacing",
+    "email": "dev@workspaacing.app"
+  },
+  "scripts": {
+    "dev": "npm run electron:build:ts && node scripts/dev.mjs",
+    "build": "npm run electron:build:ts",
+    "electron:package": "npm run electron:build:ts && node scripts/copy-web-deps.mjs && electron-builder",
+    "electron:package:win": "npm run electron:build:ts && electron-builder --win",
+    "electron:package:mac": "npm run electron:build:ts && electron-builder --mac",
+    "electron:package:linux": "npm run electron:build:ts && electron-builder --linux",
+    "electron:build:ts": "tsc -p electron/tsconfig.json"
+  },
+  "build": {
+    "appId": "com.workspaacing.app",
+    "productName": "Workspaacing",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/dist/**/*",
+      "electron/interface.d.ts",
+      ".next-standalone/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "../web/src/app/favicon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.developer-tools"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Development",
+      "executableName": "workspaacing"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "electron": "44.2.0",
+    "electron-builder": "^26.15.3",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3"
+  }
+}

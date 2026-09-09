@@ -1,0 +1,67 @@
+name: Triage
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Check exempt issue author
+        id: author
+        run: |
+          LOGIN="${{ github.event.issue.user.login }}"
+          ASSOCIATION="${{ github.event.issue.author_association }}"
+
+          if [ "$LOGIN" = "opencode-agent[bot]" ] ||
+             [ "$ASSOCIATION" = "OWNER" ] ||
+             [ "$ASSOCIATION" = "MEMBER" ] ||
+             grep -qxiF "$LOGIN" .github/TEAM_MEMBERS; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping issue automation for exempt author: $LOGIN"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v7
+        if: steps.author.outputs.skip != 'true'
+
+      - name: Setup Node.js
+        if: steps.author.outputs.skip != 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install OpenCode
+        if: steps.author.outputs.skip != 'true'
+        run: curl -fsSL https://opencode.ai/install | bash
+
+      - name: Triage issue
+        if: steps.author.outputs.skip != 'true'
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          opencode run -m opencode/claude-sonnet-4-6 "The following issue was just opened, triage it:
+
+          Title: $ISSUE_TITLE
+
+          $ISSUE_BODY
+
+          Tasks:
+          1. Read the issue content
+          2. Determine if it follows one of the issue templates (Bug Report, Feature Request, Question)
+          3. Add appropriate labels using: gh issue edit $ISSUE_NUMBER --add-label <label>
+             - bug: for bug reports
+             - feature: for feature requests
+             - question: for questions
+             - needs:triage: if unclear
+          4. If the issue doesn't follow any template, add needs:triage label
+          5. Do NOT comment on the issue - just add labels"

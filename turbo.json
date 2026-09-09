@@ -1,0 +1,72 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env"],
+  "globalEnv": ["NODE_ENV", "NEXT_PUBLIC_*"],
+  "globalPassThroughEnv": ["CI", "VERCEL"],
+  "remoteCache": {
+    "signature": true
+  },
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "!node_modules/**"],
+      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**", "out/**", "dist/**", "dist-electron/**"],
+      "outputLogs": "errors-only"
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputLogs": "none"
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": [],
+      "outputLogs": "errors-only"
+    },
+    "check": {
+      "dependsOn": ["^check"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": [],
+      "outputLogs": "errors-only"
+    },
+    "check:fix": {
+      "dependsOn": [],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": [],
+      "cache": false
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": [],
+      "outputLogs": "errors-only"
+    },
+    "format": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": [],
+      "cache": false
+    },
+    "generate:presets": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": ["src/styles/presets/**"]
+    },
+    "electron:package": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": ["dist-electron/**"]
+    },
+    "knip": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": [],
+      "outputLogs": "errors-only"
+    },
+    "//#lint:root": {
+      "inputs": ["*.md", ".github/**/*.yml"],
+      "outputs": []
+    }
+  }
+}
