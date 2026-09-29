@@ -47,7 +47,7 @@
     "@biomejs/biome": "^2.5.12",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.0",
-    "markdownlint-cli2": "^0.23.2",
+    "markdownlint-cli2": "^0.23.3",
     "turbo": "^2.10.12"
   },
   "dependencies": {}
