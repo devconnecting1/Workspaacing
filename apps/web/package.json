@@ -23,7 +23,7 @@
     "@fullcalendar/react": "^7.1.0",
     "@hookform/resolvers": "^5.9.1",
     "@shadcn/react": "^0.3.1",
-    "@tanstack/react-table": "^9.2.4",
+    "@tanstack/react-table": "^9.3.1",
     "@vercel/analytics": "^2.0.1",
     "@workspaacing/ui": "*",
     "@workspaacing/theme": "*",
