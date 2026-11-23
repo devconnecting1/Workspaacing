@@ -68,7 +68,7 @@
     "@types/topojson-client": "^3.1.5",
     "babel-plugin-react-compiler": "^1.0.0",
     "knip": "^6.34.0",
-    "postcss": "^8.5.28",
+    "postcss": "^8.5.33",
     "postcss-load-config": "^6.0.1",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.13",
